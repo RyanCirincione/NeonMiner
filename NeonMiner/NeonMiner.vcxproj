@@ -142,24 +142,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Game.cpp" />
-    <ClCompile Include="GameObject.cpp" />
+    <ClCompile Include="Item.cpp" />
     <ClCompile Include="LTexture.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Map.cpp" />
+    <ClCompile Include="Particle.cpp" />
     <ClCompile Include="Player.cpp" />
-    <ClCompile Include="TextureManager.cpp" />
+    <ClCompile Include="Projectile.cpp" />
     <ClCompile Include="Tile.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Components.h" />
-    <ClInclude Include="ECS.h" />
-    <ClInclude Include="Game.h" />
-    <ClInclude Include="GameObject.h" />
+    <ClInclude Include="Constants.h" />
+    <ClInclude Include="Item.h" />
     <ClInclude Include="LTexture.h" />
-    <ClInclude Include="Map.h" />
+    <ClInclude Include="Particle.h" />
     <ClInclude Include="Player.h" />
-    <ClInclude Include="TextureManager.h" />
+    <ClInclude Include="Projectile.h" />
     <ClInclude Include="Tile.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

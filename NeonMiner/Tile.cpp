@@ -14,19 +14,23 @@ Tile::Tile(int x, int y, int tileType)
 	mType = tileType;
 }
 
-void Tile::render(SDL_Renderer* gRenderer, SDL_Rect& camera, LTexture gTileTexture, SDL_Rect gTileClips[])
+void Tile::render(SDL_Renderer* gRenderer, SDL_Rect& camera, LTexture* gTileTexture, SDL_Rect gTileClips[])
 {
 	//If the tile is on screen
 	if (checkCollision(camera, mBox))
 	{
 		//Show the tile
-		gTileTexture.render(gRenderer, mBox.x - camera.x, mBox.y - camera.y, &gTileClips[mType]);
+		gTileTexture->render(gRenderer, mBox.x - camera.x, mBox.y - camera.y, &gTileClips[mType]);
 	}
 }
 
 int Tile::getType()
 {
 	return mType;
+}
+
+void Tile::setType(int type) {
+	mType = type;
 }
 
 SDL_Rect Tile::getBox()
@@ -79,18 +83,20 @@ bool Tile::checkCollision(SDL_Rect a, SDL_Rect b)
 	return true;
 }
 
-bool Tile::touchesWall(SDL_Rect box, Tile* tiles[])
+bool Tile::touchesWall(SDL_Rect box, Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 {
 	//Go through the tiles
-	for (int i = 0; i < TOTAL_TILES; ++i)
+	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
 	{
-		//If the tile is a wall type tile
-		if ((tiles[i]->getType() >= TILE_CENTER) && (tiles[i]->getType() <= TILE_TOPLEFT))
-		{
-			//If the collision box touches the wall tile
-			if (checkCollision(box, tiles[i]->getBox()))
+		for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+			//If the tile is a wall type tile
+			if (tiles[i][j]->getType() == 1)
 			{
-				return true;
+				//If the collision box touches the wall tile
+				if (checkCollision(box, tiles[i][j]->getBox()))
+				{
+					return true;
+				}
 			}
 		}
 	}

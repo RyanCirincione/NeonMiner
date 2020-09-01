@@ -2,35 +2,35 @@
 and may not be redistributed without written permission.*/
 
 //Using SDL, SDL_image, standard IO, strings, and file streams
+#include <algorithm>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <string>
 #include <fstream>
+#include <vector>
 
+#include "Constants.h"
 #include "Player.h"
 #include "Tile.h"
 #include "LTexture.h"
-
-//Screen dimension constants
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
-
-//The dimensions of the level
-const int LEVEL_WIDTH = 1280;
-const int LEVEL_HEIGHT = 960;
+#include "Projectile.h"
+#include "Particle.h"
+#include "Item.h"
 
 //Starts up SDL and creates window
 bool init();
 
 //Loads media
-bool loadMedia(Tile* tiles[]);
+bool loadMedia(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
 
 //Frees media and shuts down SDL
-void close(Tile* tiles[]);
+void close(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
 
 //Sets tiles from tile map
-bool setTiles(Tile *tiles[]);
+bool setTiles(Tile *tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
 
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
@@ -38,15 +38,12 @@ SDL_Window* gWindow = NULL;
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
 
-//Scene textures
-LTexture gDotTexture;
-LTexture gTileTexture;
-SDL_Rect gTileClips[TOTAL_TILE_SPRITES];
-
 bool init()
 {
 	//Initialization flag
 	bool success = true;
+
+	srand(time(NULL));
 
 	//Initialize SDL
 	if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -93,24 +90,15 @@ bool init()
 	return success;
 }
 
-bool loadMedia(Tile* tiles[])
+bool loadMedia(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 {
 	//Loading success flag
 	bool success = true;
 
-	//Load player texture
-	if (!gDotTexture.loadFromFile(gRenderer, "assets/player.png"))
-	{
-		printf("Failed to load player texture!\n");
-		success = false;
+	if (!LTexture::loadTextures(gRenderer)) {
+		return false;
 	}
-
-	//Load tile texture
-	if (!gTileTexture.loadFromFile(gRenderer, "assets/tiles.png"))
-	{
-		printf("Failed to load tile set texture!\n");
-		success = false;
-	}
+	printf("%d\n", WALL_SPRITES_TXT); // -----------------------------------------------------------------------------------------
 
 	//Load tile map
 	if (!setTiles(tiles))
@@ -122,21 +110,24 @@ bool loadMedia(Tile* tiles[])
 	return success;
 }
 
-void close(Tile* tiles[])
+void close(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 {
 	//Deallocate tiles
-	for (int i = 0; i < TOTAL_TILES; ++i)
+	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
 	{
-		if (tiles[i] != NULL)
-		{
-			delete tiles[i];
-			tiles[i] = NULL;
+		for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+			if (tiles[i][j] != NULL)
+			{
+				delete tiles[i][j];
+				tiles[i][j] = NULL;
+			}
 		}
 	}
 
+
+
 	//Free loaded images
-	gDotTexture.free();
-	gTileTexture.free();
+	LTexture::freeTextures();
 
 	//Destroy window	
 	SDL_DestroyRenderer(gRenderer);
@@ -149,7 +140,7 @@ void close(Tile* tiles[])
 	SDL_Quit();
 }
 
-bool setTiles(Tile* tiles[])
+bool setTiles(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 {
 	//Success flag
 	bool tilesLoaded = true;
@@ -157,130 +148,68 @@ bool setTiles(Tile* tiles[])
 	//The tile offsets
 	int x = 0, y = 0;
 
-	//Open the map
-	std::ifstream map("assets/lazy.map");
-
-	//If the map couldn't be loaded
-	if (map.fail())
+	//Initialize the tiles
+	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
 	{
-		printf("Unable to load map file!\n");
-		tilesLoaded = false;
-	}
-	else
-	{
-		//Initialize the tiles
-		for (int i = 0; i < TOTAL_TILES; ++i)
-		{
-			//Determines what kind of tile will be made
-			int tileType = -1;
-
-			//Read tile from map file
-			map >> tileType;
-
-			//If the was a problem in reading the map
-			if (map.fail())
-			{
-				//Stop loading map
-				printf("Error loading map: Unexpected end of file!\n");
-				tilesLoaded = false;
-				break;
-			}
-
-			//If the number is a valid tile number
-			if ((tileType >= 0) && (tileType < TOTAL_TILE_SPRITES))
-			{
-				tiles[i] = new Tile(x, y, tileType);
-			}
-			//If we don't recognize the tile type
-			else
-			{
-				//Stop loading map
-				printf("Error loading map: Invalid tile type at %d!\n", i);
-				tilesLoaded = false;
-				break;
-			}
+		for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+			float dist2FromCenter = pow(i - LEVEL_WIDTH / TILE_WIDTH / 2, 2) + pow(j - LEVEL_HEIGHT / TILE_HEIGHT / 2, 2);
+			float chance = sqrt(dist2FromCenter) / sqrt(pow(LEVEL_WIDTH / TILE_WIDTH / 2, 2) + pow(LEVEL_HEIGHT / TILE_HEIGHT / 2, 2)) * 100;
+			tiles[i][j] = new Tile(x, y, (rand() % 100 < chance) ? TILE_WALL : TILE_SPACE);
 
 			//Move to next tile spot
-			x += TILE_WIDTH;
+			y += TILE_WIDTH;
+		}
+		//Move back
+		y = 0;
 
-			//If we've gone too far
-			if (x >= LEVEL_WIDTH)
-			{
-				//Move back
-				x = 0;
+		//Move to the next row
+		x += TILE_HEIGHT;
+	}
 
-				//Move to the next row
-				y += TILE_HEIGHT;
+	//Smooth the noise
+	for (int iterations = 0; iterations < 2; iterations++) {
+		int smoothTiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT];
+		for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
+		{
+			for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+				int space = 0;
+				int wall = 0;
+				for (int x = -1; x <= 1; x++) {
+					for (int y = -1; y <= 1; y++) {
+						if (i + x < 0 || i + x >= LEVEL_WIDTH / TILE_WIDTH || j + y < 0 || j + y >= LEVEL_HEIGHT / TILE_HEIGHT) {
+							wall++;
+							continue;
+						}
+
+						if (tiles[i + x][j + y]->getType() == TILE_SPACE) {
+							space++;
+						}
+						else if (tiles[i + x][j + y]->getType() == TILE_WALL) {
+							wall++;
+						}
+					}
+				}
+
+				smoothTiles[i][j] = space > wall ? TILE_SPACE : TILE_WALL;
 			}
 		}
-
-		//Clip the sprite sheet
-		if (tilesLoaded)
+		for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
 		{
-			gTileClips[TILE_RED].x = 0;
-			gTileClips[TILE_RED].y = 0;
-			gTileClips[TILE_RED].w = TILE_WIDTH;
-			gTileClips[TILE_RED].h = TILE_HEIGHT;
-
-			gTileClips[TILE_GREEN].x = 0;
-			gTileClips[TILE_GREEN].y = 80;
-			gTileClips[TILE_GREEN].w = TILE_WIDTH;
-			gTileClips[TILE_GREEN].h = TILE_HEIGHT;
-
-			gTileClips[TILE_BLUE].x = 0;
-			gTileClips[TILE_BLUE].y = 160;
-			gTileClips[TILE_BLUE].w = TILE_WIDTH;
-			gTileClips[TILE_BLUE].h = TILE_HEIGHT;
-
-			gTileClips[TILE_TOPLEFT].x = 80;
-			gTileClips[TILE_TOPLEFT].y = 0;
-			gTileClips[TILE_TOPLEFT].w = TILE_WIDTH;
-			gTileClips[TILE_TOPLEFT].h = TILE_HEIGHT;
-
-			gTileClips[TILE_LEFT].x = 80;
-			gTileClips[TILE_LEFT].y = 80;
-			gTileClips[TILE_LEFT].w = TILE_WIDTH;
-			gTileClips[TILE_LEFT].h = TILE_HEIGHT;
-
-			gTileClips[TILE_BOTTOMLEFT].x = 80;
-			gTileClips[TILE_BOTTOMLEFT].y = 160;
-			gTileClips[TILE_BOTTOMLEFT].w = TILE_WIDTH;
-			gTileClips[TILE_BOTTOMLEFT].h = TILE_HEIGHT;
-
-			gTileClips[TILE_TOP].x = 160;
-			gTileClips[TILE_TOP].y = 0;
-			gTileClips[TILE_TOP].w = TILE_WIDTH;
-			gTileClips[TILE_TOP].h = TILE_HEIGHT;
-
-			gTileClips[TILE_CENTER].x = 160;
-			gTileClips[TILE_CENTER].y = 80;
-			gTileClips[TILE_CENTER].w = TILE_WIDTH;
-			gTileClips[TILE_CENTER].h = TILE_HEIGHT;
-
-			gTileClips[TILE_BOTTOM].x = 160;
-			gTileClips[TILE_BOTTOM].y = 160;
-			gTileClips[TILE_BOTTOM].w = TILE_WIDTH;
-			gTileClips[TILE_BOTTOM].h = TILE_HEIGHT;
-
-			gTileClips[TILE_TOPRIGHT].x = 240;
-			gTileClips[TILE_TOPRIGHT].y = 0;
-			gTileClips[TILE_TOPRIGHT].w = TILE_WIDTH;
-			gTileClips[TILE_TOPRIGHT].h = TILE_HEIGHT;
-
-			gTileClips[TILE_RIGHT].x = 240;
-			gTileClips[TILE_RIGHT].y = 80;
-			gTileClips[TILE_RIGHT].w = TILE_WIDTH;
-			gTileClips[TILE_RIGHT].h = TILE_HEIGHT;
-
-			gTileClips[TILE_BOTTOMRIGHT].x = 240;
-			gTileClips[TILE_BOTTOMRIGHT].y = 160;
-			gTileClips[TILE_BOTTOMRIGHT].w = TILE_WIDTH;
-			gTileClips[TILE_BOTTOMRIGHT].h = TILE_HEIGHT;
+			for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+				tiles[i][j]->setType(smoothTiles[i][j]);
+			}
 		}
 	}
 
-	//Close the file
-	map.close();
+	//Insert ore
+	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
+	{
+		for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+			if (tiles[i][j]->getType() == TILE_WALL && rand() % 1000 < 3) {
+				tiles[i][j]->tags.push_back(rand() % 3);
+			}
+		}
+	}
 
 	//If the map was loaded fine
 	return tilesLoaded;
@@ -296,7 +225,7 @@ int main(int argc, char* args[])
 	else
 	{
 		//The level tiles
-		Tile* tileSet[TOTAL_TILES];
+		Tile* tileSet[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT];
 
 		//Load media
 		if (!loadMedia(tileSet))
@@ -314,6 +243,10 @@ int main(int argc, char* args[])
 			//The player that will be moving around on the screen
 			Player player;
 
+			std::vector<Projectile> projectiles;
+			std::vector<Particle*> particles;
+			std::vector<Item> items;
+
 			//Level camera
 			SDL_Rect camera = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 
@@ -330,26 +263,96 @@ int main(int argc, char* args[])
 					}
 
 					//Handle input for the player
-					player.handleEvent(e);
+					player.handleEvent(e, &projectiles);
 				}
 
 				//Move the player
-				player.move(tileSet);
+				player.move(tileSet, camera, items);
 				player.setCamera(camera);
 
+				//Update particles
+				for (auto p : particles) {
+					p->update();
+				}
+
+				//Update projectiles
+				for (auto p : projectiles) {
+					p.update(tileSet, &items);
+				}
+
+				//Update items
+				for (auto i : items) {
+					i.update(tileSet);
+				}
+
+				projectiles.erase(std::remove_if(projectiles.begin(), projectiles.end(), [](Projectile p) {return p.remove; }), projectiles.end());
+				particles.erase(std::remove_if(particles.begin(), particles.end(), [](Particle* p) {return p->lifetime <= 0; }), particles.end());
+				items.erase(std::remove_if(items.begin(), items.end(), [](Item i) {return i.remove; }), items.end());
+				
 				//Clear screen
-				SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+				SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
 				SDL_RenderClear(gRenderer);
 
+				SDL_Rect tileBox;
+				SDL_Rect tileClip = SDL_Rect{ 0, 0, 64, 64 };
+
 				//Render level
-				for (int i = 0; i < TOTAL_TILES; ++i)
+				for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
 				{
-					tileSet[i]->render(gRenderer, camera, gTileTexture, gTileClips);
+					for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+						//If the tile is on screen
+						if (Tile::checkCollision(camera, tileSet[i][j]->getBox()))
+						{
+							tileBox = tileSet[i][j]->getBox();
+							tileBox.x += tileBox.w / 2 - camera.x;
+							tileBox.y += tileBox.h / 2 - camera.y;
+
+							tileClip.x = 0;
+							tileClip.x += tileSet[i][j]->getType() == 1 ? 64 : 0;
+							tileClip.x += (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i][j + 1]->getType() == 1) ? 128 : 0;
+
+							tileClip.y = 0;
+							tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i + 1][j + 1]->getType() == 1) ? 64 : 0;
+							tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (tileSet[i + 1][j]->getType() == 1) ? 128 : 0;
+
+							WALL_SPRITES_TXT->render(gRenderer, tileBox, &tileClip);
+
+							//Add particles for ore tiles
+							if (rand() % 17 <= 0 && tileSet[i][j]->tags.size() > 0) {
+								LTexture* texture;
+								if (tileSet[i][j]->tags.at(0) == RED_ORE) {
+									texture = RED_SPARKLE_TXT;
+								}
+								else if(tileSet[i][j]->tags.at(0) == GREEN_ORE) {
+									texture = GREEN_SPARKLE_TXT;
+								}
+								else {//if(tileSet[i][j]->tags.at(0) == BLUE_ORE) {
+									texture = BLUE_SPARKLE_TXT;
+								}
+
+								particles.push_back(new Particle(texture, rand() % 8 + 24, tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
+							}
+						}
+					}
+				}
+
+				//Render particles
+				for (auto p : particles) {
+					p->render(gRenderer, camera);
+				}
+
+				//Render projectiles
+				for (auto p : projectiles) {
+					p.render(gRenderer, camera, PROJECTILE_TXT);
+				}
+
+				//Render items
+				for (auto i : items) {
+					i.render(gRenderer, camera);
 				}
 
 				//Render player
-				player.render(gRenderer, camera, gDotTexture);
-				//SDL_RenderCopy(gRenderer, gDotTexture.mTexture, new SDL_Rect{ 0,0,20,20 }, new SDL_Rect{ 100,100,120,120 });
+				player.render(gRenderer, camera, PLAYER_TXT);
 
 				//Update screen
 				SDL_RenderPresent(gRenderer);
