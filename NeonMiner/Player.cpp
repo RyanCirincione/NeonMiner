@@ -19,7 +19,7 @@ Player::Player()
 	rotation = 0;
 }
 
-void Player::handleEvent(SDL_Event& e, std::vector<Projectile>* projectiles)
+void Player::handleEvent(SDL_Event& e, std::vector<Projectile*>* projectiles)
 {
 	//If a key was pressed
 	if (e.type == SDL_KEYDOWN && e.key.repeat == 0)
@@ -47,11 +47,11 @@ void Player::handleEvent(SDL_Event& e, std::vector<Projectile>* projectiles)
 	}
 	else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)) {
 		Projectile* p = new Projectile(mBox.x + PLAYER_WIDTH / 2 - PROJECTILE_WIDTH / 2, mBox.y + PROJECTILE_HEIGHT / 2, rotation);
-		projectiles->push_back(*p);
+		projectiles->push_back(p);
 	}
 }
 
-void Player::move(Tile *tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], SDL_Rect& camera, std::vector<Item> items)
+void Player::move(Tile *tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], SDL_Rect& camera, std::vector<Item*> items)
 {
 	int mouseX, mouseY;
 	SDL_GetMouseState(&mouseX, &mouseY);
@@ -88,10 +88,10 @@ void Player::move(Tile *tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIG
 
 	//Move items closer to player
 	for (auto i : items) {
-		float dist = sqrt(pow(i.posX - mBox.x, 2) + pow(i.posY - mBox.y, 2));
-		if (dist < 500) {
-			i.posX += (mBox.x - i.posX) * 5 / dist;
-			i.posY += (mBox.y - i.posY) * 5 / dist;
+		float dist = sqrt(pow(i->posX - mBox.x, 2) + pow(i->posY - mBox.y, 2));
+		if (dist < 100) {
+			i->posX += (mBox.x - i->posX) * 5 / dist;
+			i->posY += (mBox.y - i->posY) * 5 / dist;
 		}
 	}
 }

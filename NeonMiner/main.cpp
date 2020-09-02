@@ -98,7 +98,6 @@ bool loadMedia(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]
 	if (!LTexture::loadTextures(gRenderer)) {
 		return false;
 	}
-	printf("%d\n", WALL_SPRITES_TXT); // -----------------------------------------------------------------------------------------
 
 	//Load tile map
 	if (!setTiles(tiles))
@@ -243,9 +242,9 @@ int main(int argc, char* args[])
 			//The player that will be moving around on the screen
 			Player player;
 
-			std::vector<Projectile> projectiles;
+			std::vector<Projectile*> projectiles;
 			std::vector<Particle*> particles;
-			std::vector<Item> items;
+			std::vector<Item*> items;
 
 			//Level camera
 			SDL_Rect camera = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
@@ -277,18 +276,18 @@ int main(int argc, char* args[])
 
 				//Update projectiles
 				for (auto p : projectiles) {
-					p.update(tileSet, &items);
+					p->update(tileSet, &items);
 				}
 
 				//Update items
 				for (auto i : items) {
-					i.update(tileSet);
+					i->update(tileSet);
 				}
 
-				projectiles.erase(std::remove_if(projectiles.begin(), projectiles.end(), [](Projectile p) {return p.remove; }), projectiles.end());
+				projectiles.erase(std::remove_if(projectiles.begin(), projectiles.end(), [](Projectile* p) {return p->remove; }), projectiles.end());
 				particles.erase(std::remove_if(particles.begin(), particles.end(), [](Particle* p) {return p->lifetime <= 0; }), particles.end());
-				items.erase(std::remove_if(items.begin(), items.end(), [](Item i) {return i.remove; }), items.end());
-				
+				items.erase(std::remove_if(items.begin(), items.end(), [](Item* i) {return i->remove; }), items.end());
+
 				//Clear screen
 				SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
 				SDL_RenderClear(gRenderer);
@@ -343,12 +342,12 @@ int main(int argc, char* args[])
 
 				//Render projectiles
 				for (auto p : projectiles) {
-					p.render(gRenderer, camera, PROJECTILE_TXT);
+					p->render(gRenderer, camera, PROJECTILE_TXT);
 				}
 
 				//Render items
 				for (auto i : items) {
-					i.render(gRenderer, camera);
+					i->render(gRenderer, camera);
 				}
 
 				//Render player

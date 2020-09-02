@@ -17,7 +17,7 @@ Projectile::Projectile(int x, int y, int r) {
 	remove = false;
 }
 
-void Projectile::update(Tile * tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], std::vector<Item>* items) {
+void Projectile::update(Tile * tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], std::vector<Item*>* items) {
 	hitbox.x += velX;
 	hitbox.y += velY;
 
@@ -27,24 +27,10 @@ void Projectile::update(Tile * tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TI
 			for (int j = -1; j <= 1; j++) {
 				tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->setType(TILE_SPACE); // TODO verify on edge of screen
 				if (tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->tags.size() > 0) {
-					LTexture* texture;
-					switch (tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->tags.at(0)) // TODO properly read ORE tag
-					{
-					RED_ORE:
-						texture = RED_ORE_TXT;
-						break;
-					GREEN_ORE:
-						texture = GREEN_ORE_TXT;
-						break;
-					BLUE_ORE:
-						texture = BLUE_ORE_TXT;
-						break;
-					default:
-						texture = RED_ORE_TXT;
-						break;
-					}
-					items->push_back(*new Item(texture, (hitbox.x / TILE_WIDTH + i) * TILE_WIDTH + rand() % (TILE_WIDTH * 2) - TILE_WIDTH / 2,
+					items->push_back(new Item(tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->tags.at(0), // TODO properly read ORE tag
+						(hitbox.x / TILE_WIDTH + i) * TILE_WIDTH + rand() % (TILE_WIDTH * 2) - TILE_WIDTH / 2,
 						(hitbox.y / TILE_HEIGHT + j) * TILE_HEIGHT + rand() % (TILE_HEIGHT * 2) - TILE_HEIGHT / 2));
+
 					tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->tags.pop_back(); // TODO properly remove the ORE tag
 				}
 			}

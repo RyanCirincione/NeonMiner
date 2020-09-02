@@ -53,12 +53,12 @@ private:
 	int mHeight;
 };
 
-static LTexture* PLAYER_TXT;
-static LTexture* PROJECTILE_TXT;
-static LTexture* WALL_SPRITES_TXT;
-static LTexture* RED_ORE_TXT;
-static LTexture* RED_SPARKLE_TXT;
-static LTexture* GREEN_ORE_TXT;
-static LTexture* GREEN_SPARKLE_TXT;
-static LTexture* BLUE_ORE_TXT;
-static LTexture* BLUE_SPARKLE_TXT;
+extern LTexture* PLAYER_TXT;
+extern LTexture* PROJECTILE_TXT;
+extern LTexture* WALL_SPRITES_TXT;
+extern LTexture* RED_ORE_TXT;
+extern LTexture* RED_SPARKLE_TXT;
+extern LTexture* GREEN_ORE_TXT;
+extern LTexture* GREEN_SPARKLE_TXT;
+extern LTexture* BLUE_ORE_TXT;
+extern LTexture* BLUE_SPARKLE_TXT;

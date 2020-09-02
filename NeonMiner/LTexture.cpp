@@ -135,7 +135,6 @@ bool LTexture::loadTextures(SDL_Renderer* gRenderer) {
 		printf("Failed to load blue ore texture!\n");
 		success = false;
 	}
-	printf("%d\n", WALL_SPRITES_TXT); // -----------------------------------------------------------------------------------------
 
 	return success;
 }
@@ -250,3 +249,13 @@ int LTexture::getHeight()
 {
 	return mHeight;
 }
+
+LTexture* PLAYER_TXT;
+LTexture* PROJECTILE_TXT;
+LTexture* WALL_SPRITES_TXT;
+LTexture* RED_ORE_TXT;
+LTexture* RED_SPARKLE_TXT;
+LTexture* GREEN_ORE_TXT;
+LTexture* GREEN_SPARKLE_TXT;
+LTexture* BLUE_ORE_TXT;
+LTexture* BLUE_SPARKLE_TXT;
