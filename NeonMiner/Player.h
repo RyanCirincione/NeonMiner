@@ -25,12 +25,13 @@ public:
 	void render(SDL_Renderer* gRenderer, SDL_Rect& camera, LTexture* gDotTexture);
 
 	//Collision box of the dot
-	SDL_Rect mBox;
+	float posX, posY;
 
 	float rotation;
 
 private:
 
 	//The velocity of the dot
-	int mVelX, mVelY;
+	float mVelX, mVelY;
+	float dashCooldown, dashBoost;
 };

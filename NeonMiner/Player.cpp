@@ -8,57 +8,68 @@
 Player::Player()
 {
 	//Initialize the collision box
-	mBox.x = CENTER_X;
-	mBox.y = CENTER_Y;
-	mBox.w = PLAYER_WIDTH;
-	mBox.h = PLAYER_HEIGHT;
+	posX = CENTER_X;
+	posY = CENTER_Y;
 
 	//Initialize the velocity
 	mVelX = 0;
 	mVelY = 0;
 	rotation = 0;
+
+	dashCooldown = MAX_TIME_TO_BONUS_DECAY;
+	dashBoost = 1;
 }
 
 void Player::handleEvent(SDL_Event& e, std::vector<Projectile*>* projectiles)
 {
-	//If a key was pressed
-	if (e.type == SDL_KEYDOWN && e.key.repeat == 0)
-	{
-		//Adjust the velocity
-		switch (e.key.keysym.sym)
-		{
-		case SDLK_w: mVelY -= PLAYER_VEL; break;
-		case SDLK_s: mVelY += PLAYER_VEL; break;
-		case SDLK_a: mVelX -= PLAYER_VEL; break;
-		case SDLK_d: mVelX += PLAYER_VEL; break;
+	if (dashCooldown >= MIN_TIME_TO_DASH && e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_LSHIFT) {
+		mVelX += cos(rotation / 180 * M_PI) * DASH_VEL * dashBoost;
+		mVelY += sin(rotation / 180 * M_PI) * DASH_VEL * dashBoost;
+
+		if (dashCooldown >= MIN_TIME_TO_DASH_BONUS && dashCooldown <= MAX_TIME_TO_DASH_BONUS) {
+			dashBoost += DASH_BONUS_FACTOR;
 		}
+
+		dashCooldown = 0;
 	}
-	//If a key was released
-	else if (e.type == SDL_KEYUP && e.key.repeat == 0)
-	{
-		//Adjust the velocity
-		switch (e.key.keysym.sym)
-		{
-		case SDLK_w: mVelY += PLAYER_VEL; break;
-		case SDLK_s: mVelY -= PLAYER_VEL; break;
-		case SDLK_a: mVelX += PLAYER_VEL; break;
-		case SDLK_d: mVelX -= PLAYER_VEL; break;
-		}
-	}
-	else if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)) {
-		Projectile* p = new Projectile(mBox.x + PLAYER_WIDTH / 2 - PROJECTILE_WIDTH / 2, mBox.y + PROJECTILE_HEIGHT / 2, rotation);
+
+	if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON(SDL_BUTTON_LEFT)) {
+		Projectile* p = new Projectile(posX + PLAYER_WIDTH / 2 - PROJECTILE_WIDTH / 2, posY + PROJECTILE_HEIGHT / 2, rotation);
 		projectiles->push_back(p);
 	}
 }
 
 void Player::move(Tile *tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], SDL_Rect& camera, std::vector<Item*> items)
 {
+	dashCooldown += 0.01;
+	if (dashCooldown >= MAX_TIME_TO_BONUS_DECAY) {
+		dashBoost = fmax(dashBoost - DASH_BONUS_DECAY, 1.0);
+	}
+
 	int mouseX, mouseY;
 	SDL_GetMouseState(&mouseX, &mouseY);
-	int diffX = mouseX - mBox.x + camera.x - PLAYER_WIDTH / 2;
-	int diffY = mouseY - mBox.y + camera.y - PLAYER_HEIGHT / 2;
+	int diffX = mouseX - posX + camera.x - PLAYER_WIDTH / 2;
+	int diffY = mouseY - posY + camera.y - PLAYER_HEIGHT / 2;
 
-	if (mouseY - mBox.y == 0) {
+	const Uint8* state = SDL_GetKeyboardState(NULL);
+	if (state[SDL_SCANCODE_W]) {
+		mVelY -= PLAYER_VEL;
+	}
+	if (state[SDL_SCANCODE_A]) {
+		mVelX -= PLAYER_VEL;
+	}
+	if (state[SDL_SCANCODE_S]) {
+		mVelY += PLAYER_VEL;
+	}
+	if (state[SDL_SCANCODE_D]) {
+		mVelX += PLAYER_VEL;
+	}
+	//mVelX += fmin(FRICTION, fmax(-FRICTION, -mVelX));
+	mVelX /= FRICTION;
+	//mVelY += fmin(FRICTION, fmax(-FRICTION, -mVelY));
+	mVelY /= FRICTION;
+
+	if (mouseY - posY == 0) {
 		rotation = diffX > 0 ? 0 : 180;
 	}
 	else {
@@ -67,40 +78,41 @@ void Player::move(Tile *tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIG
 	}
 
 	//Move the dot left or right
-	mBox.x += mVelX;
+	posX += mVelX;
 
 	//If the dot went too far to the left or right or touched a wall
-	if ((mBox.x < 0) || (mBox.x + PLAYER_WIDTH > LEVEL_WIDTH) || Tile::touchesWall(mBox, tiles))
+	if ((posX < 0) || (posX + PLAYER_WIDTH > LEVEL_WIDTH) || Tile::touchesWall(*new SDL_Rect{ (int)posX, (int)posY, PLAYER_WIDTH, PLAYER_HEIGHT }, tiles))
 	{
 		//move back
-		mBox.x -= mVelX;
+		posX -= mVelX;
 	}
 
 	//Move the dot up or down
-	mBox.y += mVelY;
+	posY += mVelY;
 
 	//If the dot went too far up or down or touched a wall
-	if ((mBox.y < 0) || (mBox.y + PLAYER_HEIGHT > LEVEL_HEIGHT) || Tile::touchesWall(mBox, tiles))
+	if ((posY < 0) || (posY + PLAYER_HEIGHT > LEVEL_HEIGHT) || Tile::touchesWall(*new SDL_Rect{ (int)posX, (int)posY, PLAYER_WIDTH, PLAYER_HEIGHT }, tiles))
 	{
 		//move back
-		mBox.y -= mVelY;
+		posY -= mVelY;
 	}
 
 	//Move items closer to player
 	for (auto i : items) {
-		float dist = sqrt(pow(i->posX - mBox.x, 2) + pow(i->posY - mBox.y, 2));
+		float dist = sqrt(pow(i->posX - posX, 2) + pow(i->posY - posY, 2));
 		if (dist < 100) {
-			i->posX += (mBox.x - i->posX) * 5 / dist;
-			i->posY += (mBox.y - i->posY) * 5 / dist;
+			i->posX += (posX - i->posX) * 5 / dist;
+			i->posY += (posY - i->posY) * 5 / dist;
 		}
 	}
+	dashCooldown += 0.01;
 }
 
 void Player::setCamera(SDL_Rect& camera)
 {
 	//Center the camera over the dot
-	camera.x = (mBox.x + PLAYER_WIDTH / 2) - SCREEN_WIDTH / 2;
-	camera.y = (mBox.y + PLAYER_HEIGHT / 2) - SCREEN_HEIGHT / 2;
+	camera.x = (posX + PLAYER_WIDTH / 2) - SCREEN_WIDTH / 2;
+	camera.y = (posY + PLAYER_HEIGHT / 2) - SCREEN_HEIGHT / 2;
 
 	//Keep the camera in bounds
 	if (camera.x < 0)
@@ -124,5 +136,20 @@ void Player::setCamera(SDL_Rect& camera)
 void Player::render(SDL_Renderer* gRenderer, SDL_Rect& camera, LTexture* gDotTexture)
 {
 	//Show the dot
-	gDotTexture->render(gRenderer, mBox.x - camera.x, mBox.y - camera.y, new SDL_Rect{ 0, 0, PLAYER_WIDTH, PLAYER_HEIGHT }, rotation);
+	gDotTexture->render(gRenderer, posX - camera.x, posY - camera.y, new SDL_Rect{ 0, 0, PLAYER_WIDTH, PLAYER_HEIGHT }, rotation);
+
+	const int DASH_BAR_WIDTH = 200;
+	SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+	SDL_RenderDrawLine(gRenderer, 25, SCREEN_HEIGHT - 25, 25, SCREEN_HEIGHT - 35);
+	SDL_RenderDrawLine(gRenderer, 25 + DASH_BAR_WIDTH, SCREEN_HEIGHT - 25, 25 + DASH_BAR_WIDTH, SCREEN_HEIGHT - 35);
+	SDL_RenderDrawLine(gRenderer, 25 + fmin(DASH_BAR_WIDTH, dashCooldown / MAX_TIME_TO_BONUS_DECAY * DASH_BAR_WIDTH), SCREEN_HEIGHT - 25,
+		25 + fmin(DASH_BAR_WIDTH, dashCooldown / MAX_TIME_TO_BONUS_DECAY * DASH_BAR_WIDTH), SCREEN_HEIGHT - 35);
+	SDL_SetRenderDrawColor(gRenderer, 0xFF, 0x00, 0x00, 0xFF);
+	SDL_RenderDrawLine(gRenderer, 25 + fmin(DASH_BAR_WIDTH, MIN_TIME_TO_DASH / MAX_TIME_TO_BONUS_DECAY * DASH_BAR_WIDTH), SCREEN_HEIGHT - 25,
+		25 + fmin(DASH_BAR_WIDTH, MIN_TIME_TO_DASH / MAX_TIME_TO_BONUS_DECAY * DASH_BAR_WIDTH), SCREEN_HEIGHT - 35);
+	SDL_SetRenderDrawColor(gRenderer, 0x00, 0xFF, 0x00, 0xFF);
+	SDL_RenderDrawLine(gRenderer, 25 + fmin(DASH_BAR_WIDTH, MIN_TIME_TO_DASH_BONUS / MAX_TIME_TO_BONUS_DECAY * DASH_BAR_WIDTH), SCREEN_HEIGHT - 25,
+		25 + fmin(DASH_BAR_WIDTH, MIN_TIME_TO_DASH_BONUS / MAX_TIME_TO_BONUS_DECAY * DASH_BAR_WIDTH), SCREEN_HEIGHT - 35);
+	SDL_RenderDrawLine(gRenderer, 25 + fmin(DASH_BAR_WIDTH, MAX_TIME_TO_DASH_BONUS / MAX_TIME_TO_BONUS_DECAY * DASH_BAR_WIDTH), SCREEN_HEIGHT - 25,
+		25 + fmin(DASH_BAR_WIDTH, MAX_TIME_TO_DASH_BONUS / MAX_TIME_TO_BONUS_DECAY * DASH_BAR_WIDTH), SCREEN_HEIGHT - 35);
 }
