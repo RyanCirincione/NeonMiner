@@ -24,15 +24,25 @@ void Projectile::update(Tile * tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TI
 	if (Tile::touchesWall(hitbox, tiles))
 	{
 		for (int i = -1; i <= 1; i++) {
-			for (int j = -1; j <= 1; j++) {
-				tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->setType(TILE_SPACE); // TODO verify on edge of screen
-				if (tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->tags.size() > 0) {
-					items->push_back(new Item(tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->tags.at(0), // TODO properly read ORE tag
-						(hitbox.x / TILE_WIDTH + i) * TILE_WIDTH + rand() % (TILE_WIDTH * 2) - TILE_WIDTH / 2,
-						(hitbox.y / TILE_HEIGHT + j) * TILE_HEIGHT + rand() % (TILE_HEIGHT * 2) - TILE_HEIGHT / 2));
+			for (int j = -1; j <= 1; j++) { // TODO verify on edge of screen
+				Tile* tile = tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j];
+				int itemType;
 
-					tiles[hitbox.x / TILE_WIDTH + i][hitbox.y / TILE_HEIGHT + j]->tags.pop_back(); // TODO properly remove the ORE tag
+				switch (tile->getType()) {
+				case TILE_RED_ORE:
+					itemType = ITEM_RED_ORE;
+					break;
+				case TILE_GREEN_ORE:
+					itemType = ITEM_GREEN_ORE;
+					break;
+				case TILE_BLUE_ORE:
+					itemType = ITEM_BLUE_ORE;
+					break;
+				default:
+					itemType = -1;
+					break;
 				}
+				tile->setType(TILE_SPACE);
 			}
 		}
 

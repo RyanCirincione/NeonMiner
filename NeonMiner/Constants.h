@@ -8,6 +8,13 @@ const int SCREEN_HEIGHT = 960;
 const int LEVEL_WIDTH = 2560;
 const int LEVEL_HEIGHT = 1920;
 
+//Chunk constants
+const int TILES_PER_CHUNK = 16;
+
+//The center of the world
+const int CENTER_X = LEVEL_WIDTH / 2;
+const int CENTER_Y = LEVEL_HEIGHT / 2;
+
 //Tile constants
 const int TILE_WIDTH = 16;
 const int TILE_HEIGHT = 16;
@@ -36,11 +43,10 @@ const int PROJECTILE_SPEED = 12;
 const int TILE_SPACE = 0;
 const int TILE_WALL = 1;
 
-//The center of the world
-const int CENTER_X = LEVEL_WIDTH / 2;
-const int CENTER_Y = LEVEL_HEIGHT / 2;
+const int TILE_RED_ORE = 2;
+const int TILE_GREEN_ORE = 3;
+const int TILE_BLUE_ORE = 4;
 
-//Ore tags
-const int RED_ORE = 0;
-const int GREEN_ORE = 1;
-const int BLUE_ORE = 2;
+const int ITEM_RED_ORE = 0;
+const int ITEM_GREEN_ORE = 1;
+const int ITEM_BLUE_ORE = 2;

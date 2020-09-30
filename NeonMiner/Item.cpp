@@ -17,13 +17,13 @@ void Item::render(SDL_Renderer* gRenderer, SDL_Rect& camera) {
 	LTexture* texture;
 	switch (type)
 	{
-	case RED_ORE:
+	case TILE_RED_ORE:
 		texture = RED_ORE_TXT;
 		break;
-	case GREEN_ORE:
+	case TILE_GREEN_ORE:
 		texture = GREEN_ORE_TXT;
 		break;
-	case BLUE_ORE:
+	case TILE_BLUE_ORE:
 		texture = BLUE_ORE_TXT;
 		break;
 	default:

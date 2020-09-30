@@ -142,6 +142,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Chunk.cpp" />
     <ClCompile Include="Item.cpp" />
     <ClCompile Include="LTexture.cpp" />
     <ClCompile Include="main.cpp" />
@@ -151,6 +152,7 @@
     <ClCompile Include="Tile.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Chunk.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="Item.h" />
     <ClInclude Include="LTexture.h" />

@@ -25,8 +25,6 @@ public:
 	static bool checkCollision(SDL_Rect a, SDL_Rect b);
 	static bool touchesWall(SDL_Rect box, Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
 
-	std::vector<int> tags;
-
 private:
 	//The attributes of the tile
 	SDL_Rect mBox;

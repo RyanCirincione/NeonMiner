@@ -12,6 +12,7 @@ and may not be redistributed without written permission.*/
 #include <fstream>
 #include <vector>
 
+#include "Chunk.h"
 #include "Constants.h"
 #include "Player.h"
 #include "Tile.h"
@@ -205,7 +206,7 @@ bool setTiles(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 	{
 		for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
 			if (tiles[i][j]->getType() == TILE_WALL && rand() % 1000 < 3) {
-				tiles[i][j]->tags.push_back(rand() % 3);
+				tiles[i][j]->setType(rand() % 3 + 2); // TODO Properly select from available ore types
 			}
 		}
 	}
@@ -307,29 +308,39 @@ int main(int argc, char* args[])
 							tileBox.y += tileBox.h / 2 - camera.y;
 
 							tileClip.x = 0;
-							tileClip.x += tileSet[i][j]->getType() == 1 ? 64 : 0;
-							tileClip.x += (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i][j + 1]->getType() == 1) ? 128 : 0;
+							tileClip.x += tileSet[i][j]->getType() != TILE_SPACE ? 64 : 0;
+							tileClip.x += (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i][j + 1]->getType() != TILE_SPACE) ? 128 : 0;
 
 							tileClip.y = 0;
-							tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i + 1][j + 1]->getType() == 1) ? 64 : 0;
-							tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (tileSet[i + 1][j]->getType() == 1) ? 128 : 0;
+							tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i + 1][j + 1]->getType() != TILE_SPACE) ? 64 : 0;
+							tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (tileSet[i + 1][j]->getType() != TILE_SPACE) ? 128 : 0;
 
 							WALL_SPRITES_TXT->render(gRenderer, tileBox, &tileClip);
 
 							//Add particles for ore tiles
-							if (rand() % 17 <= 0 && tileSet[i][j]->tags.size() > 0) {
-								LTexture* texture;
-								if (tileSet[i][j]->tags.at(0) == RED_ORE) {
-									texture = RED_SPARKLE_TXT;
+							switch (tileSet[i][j]->getType()) {
+							case TILE_RED_ORE:
+								if (rand() % 17 <= 0) {
+									particles.push_back(new Particle(RED_SPARKLE_TXT, rand() % 8 + 24,
+										tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
 								}
-								else if(tileSet[i][j]->tags.at(0) == GREEN_ORE) {
-									texture = GREEN_SPARKLE_TXT;
+								break;
+							case TILE_GREEN_ORE:
+								if (rand() % 17 <= 0) {
+									particles.push_back(new Particle(GREEN_SPARKLE_TXT, rand() % 8 + 24,
+										tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
 								}
-								else {//if(tileSet[i][j]->tags.at(0) == BLUE_ORE) {
-									texture = BLUE_SPARKLE_TXT;
+								break;
+							case TILE_BLUE_ORE:
+								if (rand() % 17 <= 0) {
+									particles.push_back(new Particle(BLUE_SPARKLE_TXT, rand() % 8 + 24,
+										tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
 								}
-
-								particles.push_back(new Particle(texture, rand() % 8 + 24, tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
+								break;
+							case TILE_SPACE:
+							case TILE_WALL:
+							default:
+								break;
 							}
 						}
 					}
