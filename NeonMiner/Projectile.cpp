@@ -17,7 +17,7 @@ Projectile::Projectile(int x, int y, int r) {
 	remove = false;
 }
 
-void Projectile::update(Tile * tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], std::vector<Item*>* items) {
+void Projectile::update(Tile*** tiles, std::vector<Item*>* items) {
 	hitbox.x += velX;
 	hitbox.y += velY;
 
@@ -33,6 +33,7 @@ void Projectile::update(Tile * tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TI
 					itemType = ITEM_RED_ORE;
 					break;
 				case TILE_GREEN_ORE:
+					printf("G\n");
 					itemType = ITEM_GREEN_ORE;
 					break;
 				case TILE_BLUE_ORE:
@@ -41,6 +42,11 @@ void Projectile::update(Tile * tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TI
 				default:
 					itemType = -1;
 					break;
+				}
+				if (itemType >= 0) {
+					items->push_back(new Item(itemType,
+						(hitbox.x / TILE_WIDTH + i) * TILE_WIDTH + rand() % (TILE_WIDTH * 2) - TILE_WIDTH / 2,
+						(hitbox.y / TILE_HEIGHT + j) * TILE_HEIGHT + rand() % (TILE_HEIGHT * 2) - TILE_HEIGHT / 2));
 				}
 				tile->setType(TILE_SPACE);
 			}

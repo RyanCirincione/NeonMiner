@@ -83,12 +83,12 @@ bool Tile::checkCollision(SDL_Rect a, SDL_Rect b)
 	return true;
 }
 
-bool Tile::touchesWall(SDL_Rect box, Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
+bool Tile::touchesWall(SDL_Rect box, Tile*** tiles)
 {
-	//Go through the tiles
-	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
+	//Go through the tiles we could intersect
+	for (int i = box.x / TILE_WIDTH - 1; i < (box.x + box.w) / TILE_WIDTH + 1; ++i)
 	{
-		for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+		for (int j = box.y / TILE_HEIGHT - 1; j < (box.y + box.h) / TILE_HEIGHT + 1; j++) {
 			if (tiles[i][j]->getType() != TILE_SPACE)
 			{
 				//If the collision box touches the wall tile

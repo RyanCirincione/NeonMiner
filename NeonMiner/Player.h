@@ -16,7 +16,7 @@ public:
 	void handleEvent(SDL_Event& e, std::vector<Projectile*>* projectiles);
 
 	//Moves the dot and check collision against tiles
-	void move(Tile * tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], SDL_Rect & camera, std::vector<Item*> items);
+	void move(Tile*** tiles, SDL_Rect & camera, std::vector<Item*> items);
 
 	//Centers the camera over the dot
 	void setCamera(SDL_Rect& camera);

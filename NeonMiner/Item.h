@@ -9,7 +9,7 @@
 class Item {
 public:
 	Item(int t, float pX, float pY);
-	void update(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
+	void update(Tile*** tiles);
 	void render(SDL_Renderer* gRenderer, SDL_Rect& camera);
 
 	bool remove;

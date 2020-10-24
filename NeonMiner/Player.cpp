@@ -39,7 +39,7 @@ void Player::handleEvent(SDL_Event& e, std::vector<Projectile*>* projectiles)
 	}
 }
 
-void Player::move(Tile *tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], SDL_Rect& camera, std::vector<Item*> items)
+void Player::move(Tile*** tiles, SDL_Rect& camera, std::vector<Item*> items)
 {
 	dashCooldown += 0.01;
 	if (dashCooldown >= MAX_TIME_TO_BONUS_DECAY) {

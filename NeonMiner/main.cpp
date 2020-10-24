@@ -11,6 +11,7 @@ and may not be redistributed without written permission.*/
 #include <string>
 #include <fstream>
 #include <vector>
+#include <algorithm>
 
 #include "Chunk.h"
 #include "Constants.h"
@@ -25,19 +26,56 @@ and may not be redistributed without written permission.*/
 bool init();
 
 //Loads media
-bool loadMedia(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
+bool loadMedia(Tile*** tiles);
 
 //Frees media and shuts down SDL
-void close(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
+void close(Tile*** tiles);
 
 //Sets tiles from tile map
-bool setTiles(Tile *tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
+bool setTiles(Tile*** tiles);
 
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
 
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
+
+void getPixel(SDL_Surface *surface, int x, int y, Uint8* r, Uint8* g, Uint8* b)
+{
+	// This arcane magic comes from stack overflow
+
+	int bpp = surface->format->BytesPerPixel;
+	/* Here p is the address to the pixel we want to retrieve */
+	Uint32 result = 0;
+	Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+
+	switch (bpp)
+	{
+	case 1:
+		result = *p;
+		break;
+
+	case 2:
+		result = *(Uint16 *)p;
+		break;
+
+	case 3:
+		if (SDL_BYTEORDER == SDL_BIG_ENDIAN)
+			result = p[0] << 16 | p[1] << 8 | p[2];
+		else
+			result = p[0] | p[1] << 8 | p[2] << 16;
+		break;
+
+	case 4:
+		result = *(Uint32 *)p;
+		break;
+
+	default:
+		result = 0;
+	}
+
+	SDL_GetRGB(result, surface->format, r, g, b);
+}
 
 bool init()
 {
@@ -91,7 +129,7 @@ bool init()
 	return success;
 }
 
-bool loadMedia(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
+bool loadMedia(Tile*** tiles)
 {
 	//Loading success flag
 	bool success = true;
@@ -110,7 +148,7 @@ bool loadMedia(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]
 	return success;
 }
 
-void close(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
+void close(Tile*** tiles)
 {
 	//Deallocate tiles
 	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
@@ -122,9 +160,9 @@ void close(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 				tiles[i][j] = NULL;
 			}
 		}
+		delete tiles[i];
 	}
-
-
+	delete tiles;
 
 	//Free loaded images
 	LTexture::freeTextures();
@@ -140,21 +178,38 @@ void close(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 	SDL_Quit();
 }
 
-bool setTiles(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
+void diamondStep(float** heightMap, int x, int y, int radius, float randomVariation) {
+	float a = x - radius < 0 || y - radius < 0 ? 0 : heightMap[x - radius][y - radius];
+	float b = x + radius >= LEVEL_WIDTH / TILE_WIDTH || y - radius < 0 ? 0 : heightMap[x + radius][y - radius];
+	float c = x + radius >= LEVEL_WIDTH / TILE_WIDTH || y + radius >= LEVEL_HEIGHT / TILE_HEIGHT ? 0 : heightMap[x + radius][y + radius];
+	float d = x - radius < 0 || y + radius >= LEVEL_WIDTH / TILE_HEIGHT ? 0 : heightMap[x - radius][y + radius];
+	float midpoint = (a + b + c + d) / 4 + ((rand() % 1000) / 1000.0 - 0.5) * randomVariation;
+	heightMap[x][y] = std::min(1.0f, std::max(0.0f, midpoint));
+}
+
+void squareStep(float** heightMap, int x, int y, int radius, float randomVariation) {
+	float a = y - radius < 0 ? 0 : heightMap[x][y - radius];
+	float b = x + radius >= LEVEL_WIDTH / TILE_WIDTH ? 0 : heightMap[x + radius][y];
+	float c = y + radius >= LEVEL_HEIGHT / TILE_HEIGHT ? 0 : heightMap[x][y + radius];
+	float d = x - radius < 0 ? 0 : heightMap[x - radius][y];
+	float midpoint = (a + b + c + d) / 4 + ((rand() % 1000) / 1000.0 - 0.5) * randomVariation;
+	heightMap[x][y] = std::min(1.0f, std::max(0.0f, midpoint));
+}
+
+bool setTiles(Tile*** tiles)
 {
 	//Success flag
 	bool tilesLoaded = true;
 
+	//Initialize the tiles
 	//The tile offsets
 	int x = 0, y = 0;
-
-	//Initialize the tiles
 	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
 	{
 		for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
 			float dist2FromCenter = pow(i - LEVEL_WIDTH / TILE_WIDTH / 2, 2) + pow(j - LEVEL_HEIGHT / TILE_HEIGHT / 2, 2);
 			float chance = sqrt(dist2FromCenter) / sqrt(pow(LEVEL_WIDTH / TILE_WIDTH / 2, 2) + pow(LEVEL_HEIGHT / TILE_HEIGHT / 2, 2)) * 100;
-			tiles[i][j] = new Tile(x, y, (rand() % 100 < chance) ? TILE_WALL : TILE_SPACE);
+			tiles[i][j] = new Tile(x, y, TILE_SPACE);
 
 			//Move to next tile spot
 			y += TILE_WIDTH;
@@ -166,11 +221,57 @@ bool setTiles(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 		x += TILE_HEIGHT;
 	}
 
-	//Smooth the noise
-	for (int iterations = 0; iterations < 2; iterations++) {
-		int smoothTiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT];
+	//Use Diamond-Square with the painted map
+	float** heightMap = (float**)malloc(LEVEL_WIDTH / TILE_WIDTH * sizeof(float*));
+	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; i++) {
+		heightMap[i] = (float*)malloc(LEVEL_HEIGHT / TILE_HEIGHT * sizeof(float));
+	}
+
+	SDL_Surface* mapSurface = IMG_Load("worldgen/maps/map1.png");
+	SDL_Color pixelColor;
+	for (int i = 0; i < 64; i++) {
+		for (int j = 0; j < 64; j++) {
+			getPixel(mapSurface, i, j, &pixelColor.r, &pixelColor.g, &pixelColor.b);
+			heightMap[i*16][j*16] = pixelColor.r / 255.0;
+		}
+	}
+
+	// Iteratively apply Diamond, then Square, then shrink and repeat
+	for (int radius = 8; radius > 0; radius /= 2) {
+		// Diamond
+		for (int x = radius; x < LEVEL_WIDTH / TILE_WIDTH; x += radius * 2) {
+			for (int y = radius; y < LEVEL_HEIGHT / TILE_HEIGHT; y += radius * 2) {
+				diamondStep(heightMap, x, y, radius, radius / 8.0);
+			}
+		}
+		// Square
+		for (int x = radius; x < LEVEL_WIDTH / TILE_WIDTH; x += radius * 2) {
+			for (int y = 0; y < LEVEL_HEIGHT / TILE_HEIGHT; y += radius * 2) {
+				squareStep(heightMap, x, y, radius, radius / 8.0);
+			}
+		}
+		for (int y = radius; y < LEVEL_HEIGHT / TILE_HEIGHT; y += radius * 2) {
+			for (int x = 0; x < LEVEL_WIDTH / TILE_WIDTH; x += radius * 2) {
+				squareStep(heightMap, x, y, radius, radius / 8.0);
+			}
+		}
+	}
+
+	// Convert the heightmap to the terrain
+	for (int x = 0; x < LEVEL_WIDTH / TILE_WIDTH; x++) {
+		for (int y = 0; y < LEVEL_HEIGHT / TILE_HEIGHT; y++) {
+			tiles[x][y]->setType(heightMap[x][y] < WORLDGEN_THRESHOLD ? TILE_WALL : TILE_SPACE);
+		}
+	}
+
+	// Smooth the noise
+	for (int iterations = 0; iterations < 1; iterations++) {
+		int** smoothTiles = (int**)malloc(LEVEL_WIDTH / TILE_WIDTH * sizeof(int*));
+
 		for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
 		{
+			smoothTiles[i] = (int*)malloc(LEVEL_HEIGHT / TILE_HEIGHT * sizeof(int));
+
 			for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
 				int space = 0;
 				int wall = 0;
@@ -190,7 +291,8 @@ bool setTiles(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 					}
 				}
 
-				smoothTiles[i][j] = space > wall ? TILE_SPACE : TILE_WALL;
+
+				smoothTiles[i][j] = space > wall + 1 ? TILE_SPACE : TILE_WALL;
 			}
 		}
 		for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
@@ -198,7 +300,9 @@ bool setTiles(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT])
 			for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
 				tiles[i][j]->setType(smoothTiles[i][j]);
 			}
+			delete smoothTiles[i];
 		}
+		delete smoothTiles;
 	}
 
 	//Insert ore
@@ -225,7 +329,13 @@ int main(int argc, char* args[])
 	else
 	{
 		//The level tiles
-		Tile* tileSet[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT];
+		Tile*** tileSet = (Tile***)malloc(LEVEL_WIDTH / TILE_WIDTH * sizeof(Tile**));// [LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT];
+		for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; i++) {
+			tileSet[i] = (Tile**)malloc(LEVEL_HEIGHT / TILE_HEIGHT * sizeof(Tile*));
+			for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
+				tileSet[i][j] = (Tile*)malloc(sizeof(Tile));
+			}
+		}
 
 		//Load media
 		if (!loadMedia(tileSet))
@@ -297,51 +407,47 @@ int main(int argc, char* args[])
 				SDL_Rect tileClip = SDL_Rect{ 0, 0, 64, 64 };
 
 				//Render level
-				for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
+				for (int i = camera.x / TILE_WIDTH - 8; i < (camera.x + camera.w) / TILE_WIDTH + 8; ++i)
 				{
-					for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
-						//If the tile is on screen
-						if (Tile::checkCollision(camera, tileSet[i][j]->getBox()))
-						{
-							tileBox = tileSet[i][j]->getBox();
-							tileBox.x += tileBox.w / 2 - camera.x;
-							tileBox.y += tileBox.h / 2 - camera.y;
+					for (int j = camera.y / TILE_HEIGHT - 8; j < (camera.y + camera.h) / TILE_HEIGHT + 8; j++) {
+						tileBox = tileSet[i][j]->getBox();
+						tileBox.x += tileBox.w / 2 - camera.x;
+						tileBox.y += tileBox.h / 2 - camera.y;
 
-							tileClip.x = 0;
-							tileClip.x += tileSet[i][j]->getType() != TILE_SPACE ? 64 : 0;
-							tileClip.x += (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i][j + 1]->getType() != TILE_SPACE) ? 128 : 0;
+						tileClip.x = 0;
+						tileClip.x += tileSet[i][j]->getType() != TILE_SPACE ? 64 : 0;
+						tileClip.x += (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i][j + 1]->getType() != TILE_SPACE) ? 128 : 0;
 
-							tileClip.y = 0;
-							tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i + 1][j + 1]->getType() != TILE_SPACE) ? 64 : 0;
-							tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (tileSet[i + 1][j]->getType() != TILE_SPACE) ? 128 : 0;
+						tileClip.y = 0;
+						tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i + 1][j + 1]->getType() != TILE_SPACE) ? 64 : 0;
+						tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (tileSet[i + 1][j]->getType() != TILE_SPACE) ? 128 : 0;
 
-							WALL_SPRITES_TXT->render(gRenderer, tileBox, &tileClip);
+						WALL_SPRITES_TXT->render(gRenderer, tileBox, &tileClip);
 
-							//Add particles for ore tiles
-							switch (tileSet[i][j]->getType()) {
-							case TILE_RED_ORE:
-								if (rand() % 17 <= 0) {
-									particles.push_back(new Particle(RED_SPARKLE_TXT, rand() % 8 + 24,
-										tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
-								}
-								break;
-							case TILE_GREEN_ORE:
-								if (rand() % 17 <= 0) {
-									particles.push_back(new Particle(GREEN_SPARKLE_TXT, rand() % 8 + 24,
-										tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
-								}
-								break;
-							case TILE_BLUE_ORE:
-								if (rand() % 17 <= 0) {
-									particles.push_back(new Particle(BLUE_SPARKLE_TXT, rand() % 8 + 24,
-										tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
-								}
-								break;
-							case TILE_SPACE:
-							case TILE_WALL:
-							default:
-								break;
+						//Add particles for ore tiles
+						switch (tileSet[i][j]->getType()) {
+						case TILE_RED_ORE:
+							if (rand() % 17 <= 0) {
+								particles.push_back(new Particle(RED_SPARKLE_TXT, rand() % 8 + 24,
+									tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
 							}
+							break;
+						case TILE_GREEN_ORE:
+							if (rand() % 17 <= 0) {
+								particles.push_back(new Particle(GREEN_SPARKLE_TXT, rand() % 8 + 24,
+									tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
+							}
+							break;
+						case TILE_BLUE_ORE:
+							if (rand() % 17 <= 0) {
+								particles.push_back(new Particle(BLUE_SPARKLE_TXT, rand() % 8 + 24,
+									tileBox.x + camera.x, tileBox.y + camera.y, (rand() % 38) / 25.0 - 0.75, (rand() % 38) / 25.0 - 0.75));
+							}
+							break;
+						case TILE_SPACE:
+						case TILE_WALL:
+						default:
+							break;
 						}
 					}
 				}

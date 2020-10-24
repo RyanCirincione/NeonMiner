@@ -7,7 +7,7 @@ class Projectile {
 public:
 	Projectile(int x, int y, int r);
 
-	void update(Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT], std::vector<Item*>* items);
+	void update(Tile*** tiles, std::vector<Item*>* items);
 
 	void render(SDL_Renderer* gRenderer, SDL_Rect& camera, LTexture* gProjectileTexture);
 

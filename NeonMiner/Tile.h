@@ -23,7 +23,7 @@ public:
 	SDL_Rect getBox();
 
 	static bool checkCollision(SDL_Rect a, SDL_Rect b);
-	static bool touchesWall(SDL_Rect box, Tile* tiles[LEVEL_WIDTH / TILE_WIDTH][LEVEL_HEIGHT / TILE_HEIGHT]);
+	static bool touchesWall(SDL_Rect box, Tile*** tiles);
 
 private:
 	//The attributes of the tile
