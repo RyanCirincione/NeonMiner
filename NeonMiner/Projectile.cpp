@@ -33,7 +33,6 @@ void Projectile::update(Tile*** tiles, std::vector<Item*>* items) {
 					itemType = ITEM_RED_ORE;
 					break;
 				case TILE_GREEN_ORE:
-					printf("G\n");
 					itemType = ITEM_GREEN_ORE;
 					break;
 				case TILE_BLUE_ORE:

@@ -104,7 +104,14 @@ void Player::move(Tile*** tiles, SDL_Rect& camera, std::vector<Item*> items)
 			i->posX += (posX - i->posX) * 5 / dist;
 			i->posY += (posY - i->posY) * 5 / dist;
 		}
+
+		//Remove, and later handle, items that are "picked up"
+		if (dist < 6) {
+			i->remove = true;
+			printf("Item: %d\n", i->type);
+		}
 	}
+
 	dashCooldown += 0.01;
 }
 
