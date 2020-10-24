@@ -306,11 +306,26 @@ bool setTiles(Tile*** tiles)
 	}
 
 	//Insert ore
+	/*
 	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
 	{
 		for (int j = 0; j < LEVEL_HEIGHT / TILE_HEIGHT; j++) {
 			if (tiles[i][j]->getType() == TILE_WALL && rand() % 1000 < 3) {
 				tiles[i][j]->setType(rand() % 3 + 2); // TODO Properly select from available ore types
+			}
+		}
+	}
+	*/
+	for (int i = 0; i < ORE_PATCH_ATTEMPTS; i++) {
+		int centerX = rand() % (LEVEL_WIDTH / TILE_WIDTH), centerY = rand() % (LEVEL_HEIGHT / TILE_HEIGHT);
+		int oreType = rand() % 3 + 2; // TODO Properly select from available ore types
+		for (int j = 0; j < ORE_ATTEMPTS_PER_PATCH; j++) {
+			int x = centerX + rand() % (ORE_PATCH_RANGE * 2 + 1) - ORE_PATCH_RANGE + rand() % (ORE_PATCH_RANGE * 2 + 1) - ORE_PATCH_RANGE;
+			x = std::max(0, std::min(LEVEL_WIDTH / TILE_WIDTH - 1, x));
+			int y = centerY + rand() % (ORE_PATCH_RANGE * 2 + 1) - ORE_PATCH_RANGE + rand() % (ORE_PATCH_RANGE * 2 + 1) - ORE_PATCH_RANGE;
+			y = std::max(0, std::min(LEVEL_HEIGHT / TILE_HEIGHT - 1, y));
+			if (tiles[x][y]->getType() == TILE_WALL) {
+				tiles[x][y]->setType(oreType);
 			}
 		}
 	}

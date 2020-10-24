@@ -15,6 +15,11 @@ const int LEVEL_HEIGHT = 16 * 64 * TILE_HEIGHT;
 //Diamond-Square wall threshold
 const float WORLDGEN_THRESHOLD = 0.5f;
 
+//Ore Gen
+const int ORE_PATCH_ATTEMPTS = 200;
+const int ORE_ATTEMPTS_PER_PATCH = 50;
+const int ORE_PATCH_RANGE = 6;
+
 //Chunk constants
 const int TILES_PER_CHUNK = 16;
 
@@ -42,7 +47,7 @@ const int PROJECTILE_WIDTH = 16;
 const int PROJECTILE_HEIGHT = 16;
 const int PROJECTILE_SPEED = 12;
 
-//The different tile sprites
+//The different tiles
 const int TILE_SPACE = 0;
 const int TILE_WALL = 1;
 
@@ -50,6 +55,7 @@ const int TILE_RED_ORE = 2;
 const int TILE_GREEN_ORE = 3;
 const int TILE_BLUE_ORE = 4;
 
+//Items
 const int ITEM_RED_ORE = 0;
 const int ITEM_GREEN_ORE = 1;
 const int ITEM_BLUE_ORE = 2;
