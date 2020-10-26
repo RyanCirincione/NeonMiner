@@ -59,3 +59,8 @@ const int TILE_BLUE_ORE = 4;
 const int ITEM_RED_ORE = 0;
 const int ITEM_GREEN_ORE = 1;
 const int ITEM_BLUE_ORE = 2;
+
+//Clock segment labels
+const int CLOCK_CALM = 0;
+const int CLOCK_RISING = 1;
+const int CLOCK_DANGER = 2;

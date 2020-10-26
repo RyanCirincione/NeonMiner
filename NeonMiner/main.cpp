@@ -7,6 +7,7 @@ and may not be redistributed without written permission.*/
 #include <SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <time.h>
 #include <string>
 #include <fstream>
@@ -362,6 +363,18 @@ int main(int argc, char* args[])
 			std::vector<Particle*> particles;
 			std::vector<Item*> items;
 
+			int time = 0, clockDuration = 0;
+			std::vector<std::pair<int, int>> clockSegments;
+			clockSegments.push_back(std::make_pair(CLOCK_CALM, 1800));
+			clockSegments.push_back(std::make_pair(CLOCK_RISING, 900));
+			clockSegments.push_back(std::make_pair(CLOCK_DANGER, 600));
+			clockSegments.push_back(std::make_pair(CLOCK_RISING, 480));
+			clockSegments.push_back(std::make_pair(CLOCK_CALM, 900));
+			clockSegments.push_back(std::make_pair(CLOCK_RISING, 360));
+			for (auto p : clockSegments) {
+				clockDuration += p.second;
+			}
+
 			//Level camera
 			SDL_Rect camera = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 
@@ -475,8 +488,24 @@ int main(int argc, char* args[])
 				//Render player
 				player.render(gRenderer, camera, PLAYER_TXT);
 
+				//Draw the clock
+				SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+
+				int clockX = SCREEN_WIDTH - 60, clockY = 60, clockR = 40;
+				int runningTotal = 0;
+				for (auto p : clockSegments) {
+					// sin wants radians
+					runningTotal += p.second;
+					double angle = (double)runningTotal / clockDuration * 2 * M_PI;
+					SDL_RenderDrawLine(gRenderer, clockX + clockR / 2 * cos(angle), clockY + clockR / 2 * sin(angle), clockX + clockR * cos(angle), clockY + clockR * sin(angle));
+				}
+				double timeAngle = (double)(time % clockDuration) / clockDuration * 2 * M_PI;
+				SDL_RenderDrawLine(gRenderer, clockX, clockY, clockX + clockR * cos(timeAngle), clockY + clockR * sin(timeAngle));
+
 				//Update screen
 				SDL_RenderPresent(gRenderer);
+
+				time++;
 			}
 		}
 
