@@ -24,12 +24,12 @@ void WallCreeper::update(Tile*** tiles, Player player) {
 
 	float dist = sqrt(pow(player.posX - posX, 2) + pow(player.posY - posY, 2));
 	if (age < PURSUE_TIME) {
-		mVelX = (player.posX - posX) * 6 / dist * (1 - (float)age / PURSUE_TIME);
-		mVelY = (player.posY - posY) * 6 / dist * (1 - (float)age / PURSUE_TIME);
+		mVelX = (player.posX - posX) * 6.0 / dist * (1 - (float)age / PURSUE_TIME);
+		mVelY = (player.posY - posY) * 6.0 / dist * (1 - (float)age / PURSUE_TIME);
 	}
 	else {
-		mVelX = (posX - player.posX) * 7 / dist * ((float)age / PURSUE_TIME - 1);
-		mVelY = (posY - player.posY) * 7 / dist * ((float)age / PURSUE_TIME - 1);
+		mVelX = (posX - player.posX) * 8.0 / dist * ((float)age / PURSUE_TIME - 1);
+		mVelY = (posY - player.posY) * 8.0 / dist * ((float)age / PURSUE_TIME - 1);
 	}
 
 	posX += mVelX;

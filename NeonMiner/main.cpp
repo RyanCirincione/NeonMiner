@@ -326,6 +326,19 @@ bool setTiles(Tile*** tiles)
 	return tilesLoaded;
 }
 
+int getCurrentClockSegment(std::vector<std::pair<int, int>>* clockSegments, int time) {
+	for (auto p : *clockSegments) {
+		// sin wants radians
+		time -= p.second;
+		if (time < 0) {
+			return p.first;
+		}
+	}
+
+	printf("Bad input given to getCurrentClockSegment().");
+	return -1;
+}
+
 int main(int argc, char* args[])
 {
 	//Start up SDL and create window
@@ -364,9 +377,8 @@ int main(int argc, char* args[])
 			std::vector<Particle*> particles;
 			std::vector<Item*> items;
 			std::vector<WallCreeper*> wallCreepers;
-			wallCreepers.push_back(new WallCreeper(CENTER_X - 400, CENTER_Y - 400, player));
 
-			int time = 0, clockDuration = 0;
+			int time = 2600, clockDuration = 0;
 			std::vector<std::pair<int, int>> clockSegments;
 			clockSegments.push_back(std::make_pair(CLOCK_CALM, 1800));
 			clockSegments.push_back(std::make_pair(CLOCK_RISING, 900));
@@ -395,6 +407,18 @@ int main(int argc, char* args[])
 
 					//Handle input for the player
 					player.handleEvent(e, &projectiles);
+				}
+
+				// Spawn Wall Creepers during danger phase
+				if (getCurrentClockSegment(&clockSegments, time % clockDuration) == CLOCK_DANGER && rand() % 50 == 0) {
+					int x = player.posX / TILE_WIDTH + rand() % 21 - 10;
+					int y = player.posY / TILE_HEIGHT + rand() % 21 - 10;
+					x = std::min(LEVEL_WIDTH / TILE_WIDTH, std::max(0, x));
+					y = std::min(LEVEL_HEIGHT / TILE_HEIGHT, std::max(0, y));
+
+					if (tileSet[x][y]->getType() != TILE_SPACE) {
+						wallCreepers.push_back(new WallCreeper(x * TILE_WIDTH, y * TILE_HEIGHT, player));
+					}
 				}
 
 				//Move the player
@@ -508,7 +532,6 @@ int main(int argc, char* args[])
 				int clockX = SCREEN_WIDTH - 60, clockY = 60, clockR = 40;
 				int runningTotal = 0;
 				for (auto p : clockSegments) {
-					// sin wants radians
 					runningTotal += p.second;
 					double angle = (double)runningTotal / clockDuration * 2 * M_PI;
 					SDL_RenderDrawLine(gRenderer, clockX + clockR / 2 * cos(angle), clockY + clockR / 2 * sin(angle), clockX + clockR * cos(angle), clockY + clockR * sin(angle));
