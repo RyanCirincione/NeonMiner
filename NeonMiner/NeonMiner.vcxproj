@@ -150,6 +150,7 @@
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Projectile.cpp" />
     <ClCompile Include="Tile.cpp" />
+    <ClCompile Include="WallCreeper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Chunk.h" />
@@ -160,6 +161,7 @@
     <ClInclude Include="Player.h" />
     <ClInclude Include="Projectile.h" />
     <ClInclude Include="Tile.h" />
+    <ClInclude Include="WallCreeper.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="worldgen\maps\map1.png" />

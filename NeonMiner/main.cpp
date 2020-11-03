@@ -14,6 +14,7 @@ and may not be redistributed without written permission.*/
 #include <vector>
 #include <algorithm>
 
+#include "WallCreeper.h"
 #include "Chunk.h"
 #include "Constants.h"
 #include "Player.h"
@@ -362,6 +363,8 @@ int main(int argc, char* args[])
 			std::vector<Projectile*> projectiles;
 			std::vector<Particle*> particles;
 			std::vector<Item*> items;
+			std::vector<WallCreeper*> wallCreepers;
+			wallCreepers.push_back(new WallCreeper(CENTER_X - 400, CENTER_Y - 400, player));
 
 			int time = 0, clockDuration = 0;
 			std::vector<std::pair<int, int>> clockSegments;
@@ -413,9 +416,15 @@ int main(int argc, char* args[])
 					i->update(tileSet);
 				}
 
+				//Update wall creepers
+				for (auto c : wallCreepers) {
+					c->update(tileSet, player);
+				}
+
 				projectiles.erase(std::remove_if(projectiles.begin(), projectiles.end(), [](Projectile* p) {return p->remove; }), projectiles.end());
 				particles.erase(std::remove_if(particles.begin(), particles.end(), [](Particle* p) {return p->lifetime <= 0; }), particles.end());
 				items.erase(std::remove_if(items.begin(), items.end(), [](Item* i) {return i->remove; }), items.end());
+				wallCreepers.erase(std::remove_if(wallCreepers.begin(), wallCreepers.end(), [](WallCreeper* c) {return c->remove; }), wallCreepers.end());
 
 				//Clear screen
 				SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
@@ -483,6 +492,11 @@ int main(int argc, char* args[])
 				//Render items
 				for (auto i : items) {
 					i->render(gRenderer, camera);
+				}
+
+				//Render wall creepers
+				for (auto c : wallCreepers) {
+					c->render(gRenderer, camera);
 				}
 
 				//Render player

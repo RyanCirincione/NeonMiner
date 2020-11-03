@@ -64,9 +64,7 @@ void Player::move(Tile*** tiles, SDL_Rect& camera, std::vector<Item*> items)
 	if (state[SDL_SCANCODE_D]) {
 		mVelX += PLAYER_VEL;
 	}
-	//mVelX += fmin(FRICTION, fmax(-FRICTION, -mVelX));
 	mVelX /= FRICTION;
-	//mVelY += fmin(FRICTION, fmax(-FRICTION, -mVelY));
 	mVelY /= FRICTION;
 
 	if (mouseY - posY == 0) {

@@ -73,6 +73,7 @@ bool LTexture::loadTextures(SDL_Renderer* gRenderer) {
 	bool success = true;
 
 	PLAYER_TXT = new LTexture();
+	WALL_CREEPER_TXT = new LTexture();
 	PROJECTILE_TXT = new LTexture();
 	WALL_SPRITES_TXT = new LTexture();
 	RED_ORE_TXT = new LTexture();
@@ -83,6 +84,12 @@ bool LTexture::loadTextures(SDL_Renderer* gRenderer) {
 	BLUE_SPARKLE_TXT = new LTexture();
 
 	if (!PLAYER_TXT->loadFromFile(gRenderer, "assets/neon_player.png"))
+	{
+		printf("Failed to load player texture!\n");
+		success = false;
+	}
+
+	if (!WALL_CREEPER_TXT->loadFromFile(gRenderer, "assets/neon_wall_creeper.png"))
 	{
 		printf("Failed to load player texture!\n");
 		success = false;
@@ -141,6 +148,7 @@ bool LTexture::loadTextures(SDL_Renderer* gRenderer) {
 
 void LTexture::freeTextures() {
 	PLAYER_TXT->free();
+	WALL_CREEPER_TXT->free();
 	PROJECTILE_TXT->free();
 	WALL_SPRITES_TXT->free();
 	RED_ORE_TXT->free();
@@ -251,6 +259,7 @@ int LTexture::getHeight()
 }
 
 LTexture* PLAYER_TXT;
+LTexture* WALL_CREEPER_TXT;
 LTexture* PROJECTILE_TXT;
 LTexture* WALL_SPRITES_TXT;
 LTexture* RED_ORE_TXT;

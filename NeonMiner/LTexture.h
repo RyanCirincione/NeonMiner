@@ -54,6 +54,7 @@ private:
 };
 
 extern LTexture* PLAYER_TXT;
+extern LTexture* WALL_CREEPER_TXT;
 extern LTexture* PROJECTILE_TXT;
 extern LTexture* WALL_SPRITES_TXT;
 extern LTexture* RED_ORE_TXT;
