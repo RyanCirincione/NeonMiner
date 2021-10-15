@@ -12,6 +12,18 @@ const int SCREEN_HEIGHT = 960;
 const int LEVEL_WIDTH = 16 * 64 * TILE_WIDTH;
 const int LEVEL_HEIGHT = 16 * 64 * TILE_HEIGHT;
 
+//The dimensions of the hub
+const int HUB_WIDTH = 67 * TILE_WIDTH;
+const int HUB_HEIGHT = 62 * TILE_HEIGHT;
+
+//Hard coded portal placement
+const float HUB_PORTAL_X = 57.5 * TILE_WIDTH;
+const float HUB_PORTAL_Y = 8.5 * TILE_HEIGHT;
+const float WORLD_PORTAL_X = LEVEL_WIDTH / 2;
+const float WORLD_PORTAL_Y = LEVEL_HEIGHT / 2;
+const int PORTAL_WIDTH = TILE_WIDTH * 3;
+const int PORTAL_HEIGHT = TILE_HEIGHT * 3;
+
 //Diamond-Square wall threshold
 const float WORLDGEN_THRESHOLD = 0.5f;
 

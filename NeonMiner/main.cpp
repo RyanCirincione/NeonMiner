@@ -28,10 +28,10 @@ and may not be redistributed without written permission.*/
 bool init();
 
 //Loads media
-bool loadMedia(Tile*** tiles);
+bool loadMedia(Tile*** tiles, Tile*** hubTiles);
 
 //Frees media and shuts down SDL
-void close(Tile*** tiles);
+void close(Tile*** tiles, Tile*** hubTiles);
 
 //Sets tiles from tile map
 bool setTiles(Tile*** tiles);
@@ -131,7 +131,30 @@ bool init()
 	return success;
 }
 
-bool loadMedia(Tile*** tiles)
+bool loadHub(Tile*** hubTiles) {
+	SDL_Surface* mapSurface = IMG_Load("worldgen/maps/hub.png");
+	SDL_Color pixelColor;
+	for (int i = 0; i < HUB_WIDTH / TILE_WIDTH; i++) {
+		for (int j = 0; j < HUB_HEIGHT / TILE_HEIGHT; j++) {
+			getPixel(mapSurface, i, j, &pixelColor.r, &pixelColor.g, &pixelColor.b);
+			hubTiles[i][j] = new Tile(i * TILE_WIDTH, j * TILE_HEIGHT, TILE_SPACE);
+
+			if (pixelColor.r == 0 && pixelColor.g = 255 && pixelColor.b == 0) {
+				// TODO place player
+			}
+			else if (pixelColor.r == 0 && pixelColor.g = 0 && pixelColor.b == 255) {
+				// TODO place portal
+			}
+			else if (pixelColor.r == 0 && pixelColor.g = 0 && pixelColor.b == 0) {
+				hubTiles[i][j].setType(TILE_WALL);
+			}
+		}
+	}
+
+	return true;
+}
+
+bool loadMedia(Tile*** tiles, Tile*** hubTiles)
 {
 	//Loading success flag
 	bool success = true;
@@ -147,10 +170,17 @@ bool loadMedia(Tile*** tiles)
 		success = false;
 	}
 
+	//Load hub
+	if (!loadHub(hubTiles))
+	{
+		printf("Failed to load hub!\n");
+		success = false;
+	}
+
 	return success;
 }
 
-void close(Tile*** tiles)
+void close(Tile*** tiles, Tile*** hubTiles)
 {
 	//Deallocate tiles
 	for (int i = 0; i < LEVEL_WIDTH / TILE_WIDTH; ++i)
@@ -165,6 +195,18 @@ void close(Tile*** tiles)
 		delete tiles[i];
 	}
 	delete tiles;
+	for (int i = 0; i < HUB_WIDTH / TILE_WIDTH; ++i)
+	{
+		for (int j = 0; j < HUB_HEIGHT / TILE_HEIGHT; j++) {
+			if (hubTiles[i][j] != NULL)
+			{
+				delete hubTiles[i][j];
+				hubTiles[i][j] = NULL;
+			}
+		}
+		delete hubTiles[i];
+	}
+	delete hubTiles;
 
 	//Free loaded images
 	LTexture::freeTextures();
@@ -357,13 +399,22 @@ int main(int argc, char* args[])
 		}
 	}
 
+	//Hub tiles
+	Tile*** hubTiles = (Tile***)malloc(HUB_WIDTH / TILE_WIDTH * sizeof(Tile**));
+	for (int i = 0; i < HUB_WIDTH / TILE_WIDTH; i++) {
+		hubTiles[i] = (Tile**)malloc(HUB_HEIGHT / TILE_HEIGHT * sizeof(Tile*));
+		for (int j = 0; j < HUB_HEIGHT / TILE_HEIGHT; j++) {
+			hubTiles[i][j] = (Tile*)malloc(sizeof(Tile));
+		}
+	}
+
 	//Load media
-	if (!loadMedia(tileSet))
+	if (!loadMedia(tileSet, hubTiles))
 	{
 		printf("Failed to load media!\n");
 
 		//Free resources and close SDL
-		close(tileSet);
+		close(tileSet, hubTiles);
 
 		return 0;
 	}
@@ -371,11 +422,15 @@ int main(int argc, char* args[])
 	//Main loop flag
 	bool quit = false;
 
+	bool inHub = true;
+
 	//Event handler
 	SDL_Event e;
 
 	//The player that will be moving around on the screen
 	Player player;
+
+	bool inHub = true;
 
 	std::vector<Projectile*> projectiles;
 	std::vector<Particle*> particles;
@@ -397,9 +452,13 @@ int main(int argc, char* args[])
 	//Level camera
 	SDL_Rect camera = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 
+	Tile*** currentTileSet;
+
 	//While application is running
 	while (!quit)
 	{
+		currentTileSet = inHub ? hubTiles : tileSet;
+
 		//Handle events on queue
 		while (SDL_PollEvent(&e) != 0)
 		{
@@ -420,13 +479,13 @@ int main(int argc, char* args[])
 			x = std::min(LEVEL_WIDTH / TILE_WIDTH, std::max(0, x));
 			y = std::min(LEVEL_HEIGHT / TILE_HEIGHT, std::max(0, y));
 
-			if (tileSet[x][y]->getType() != TILE_SPACE) {
+			if (currentTileSet[x][y]->getType() != TILE_SPACE) {
 				wallCreepers.push_back(new WallCreeper(x * TILE_WIDTH, y * TILE_HEIGHT, player));
 			}
 		}
 
 		//Move the player
-		player.move(tileSet, camera, items);
+		player.move(currentTileSet, camera, items);
 		player.setCamera(camera);
 
 		//Update particles
@@ -436,23 +495,27 @@ int main(int argc, char* args[])
 
 		//Update projectiles
 		for (auto p : projectiles) {
-			p->update(tileSet, &items);
+			p->update(currentTileSet, &items);
 		}
 
 		//Update items
 		for (auto i : items) {
-			i->update(tileSet);
+			i->update(currentTileSet);
 		}
 
 		//Update wall creepers
 		for (auto c : wallCreepers) {
-			c->update(tileSet, player);
+			c->update(currentTileSet, player);
 		}
 
 		projectiles.erase(std::remove_if(projectiles.begin(), projectiles.end(), [](Projectile* p) {return p->remove; }), projectiles.end());
 		particles.erase(std::remove_if(particles.begin(), particles.end(), [](Particle* p) {return p->lifetime <= 0; }), particles.end());
 		items.erase(std::remove_if(items.begin(), items.end(), [](Item* i) {return i->remove; }), items.end());
 		wallCreepers.erase(std::remove_if(wallCreepers.begin(), wallCreepers.end(), [](WallCreeper* c) {return c->remove; }), wallCreepers.end());
+
+		// ****************/\ UPDATE /\*********************************************************************************************************
+		// *************************************************************************************************************************************
+		// ****************\/ RENDER \/*********************************************************************************************************
 
 		//Clear screen
 		SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
@@ -461,26 +524,27 @@ int main(int argc, char* args[])
 		SDL_Rect tileBox;
 		SDL_Rect tileClip = SDL_Rect{ 0, 0, 64, 64 };
 
-		//Render level
-		for (int i = camera.x / TILE_WIDTH - 8; i < (camera.x + camera.w) / TILE_WIDTH + 8; ++i)
-		{
+		//Render level/hub
+		for (int i = camera.x / TILE_WIDTH - 8; i < (camera.x + camera.w) / TILE_WIDTH + 8; ++i) {
 			for (int j = camera.y / TILE_HEIGHT - 8; j < (camera.y + camera.h) / TILE_HEIGHT + 8; j++) {
-				tileBox = tileSet[i][j]->getBox();
+				Tile* tile = currentTileSet[i][j];
+
+				tileBox = tile->getBox();
 				tileBox.x += tileBox.w / 2 - camera.x;
 				tileBox.y += tileBox.h / 2 - camera.y;
 
 				tileClip.x = 0;
-				tileClip.x += tileSet[i][j]->getType() != TILE_SPACE ? 64 : 0;
-				tileClip.x += (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i][j + 1]->getType() != TILE_SPACE) ? 128 : 0;
+				tileClip.x += tile->getType() != TILE_SPACE ? 64 : 0;
+				tileClip.x += (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (currentTileSet[i][j + 1]->getType() != TILE_SPACE) ? 128 : 0;
 
 				tileClip.y = 0;
-				tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (tileSet[i + 1][j + 1]->getType() != TILE_SPACE) ? 64 : 0;
-				tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (tileSet[i + 1][j]->getType() != TILE_SPACE) ? 128 : 0;
+				tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (j + 1 >= LEVEL_HEIGHT / TILE_HEIGHT) || (currentTileSet[i + 1][j + 1]->getType() != TILE_SPACE) ? 64 : 0;
+				tileClip.y += (i + 1 >= LEVEL_WIDTH / TILE_WIDTH) || (currentTileSet[i + 1][j]->getType() != TILE_SPACE) ? 128 : 0;
 
 				WALL_SPRITES_TXT->render(gRenderer, tileBox, &tileClip);
 
 				//Add particles for ore tiles
-				switch (tileSet[i][j]->getType()) {
+				switch (tile->getType()) {
 				case TILE_RED_ORE:
 					if (rand() % 17 <= 0) {
 						particles.push_back(new Particle(RED_SPARKLE_TXT, rand() % 8 + 24,
@@ -530,18 +594,20 @@ int main(int argc, char* args[])
 		//Render player
 		player.render(gRenderer, camera, PLAYER_TXT);
 
-		//Draw the clock
-		SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
+		//Draw the clock, when in a level
+		if (!inHub) {
+			SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-		int clockX = SCREEN_WIDTH - 60, clockY = 60, clockR = 40;
-		int runningTotal = 0;
-		for (auto p : clockSegments) {
-			runningTotal += p.second;
-			double angle = (double)runningTotal / clockDuration * 2 * M_PI;
-			SDL_RenderDrawLine(gRenderer, clockX + clockR / 2 * cos(angle), clockY + clockR / 2 * sin(angle), clockX + clockR * cos(angle), clockY + clockR * sin(angle));
+			int clockX = SCREEN_WIDTH - 60, clockY = 60, clockR = 40;
+			int runningTotal = 0;
+			for (auto p : clockSegments) {
+				runningTotal += p.second;
+				double angle = (double)runningTotal / clockDuration * 2 * M_PI;
+				SDL_RenderDrawLine(gRenderer, clockX + clockR / 2 * cos(angle), clockY + clockR / 2 * sin(angle), clockX + clockR * cos(angle), clockY + clockR * sin(angle));
+			}
+			double timeAngle = (double)(time % clockDuration) / clockDuration * 2 * M_PI;
+			SDL_RenderDrawLine(gRenderer, clockX, clockY, clockX + clockR * cos(timeAngle), clockY + clockR * sin(timeAngle));
 		}
-		double timeAngle = (double)(time % clockDuration) / clockDuration * 2 * M_PI;
-		SDL_RenderDrawLine(gRenderer, clockX, clockY, clockX + clockR * cos(timeAngle), clockY + clockR * sin(timeAngle));
 
 		//Update screen
 		SDL_RenderPresent(gRenderer);
@@ -550,7 +616,7 @@ int main(int argc, char* args[])
 	}
 
 	//Free resources and close SDL
-	close(tileSet);
+	close(tileSet, hubTiles);
 
 	return 0;
 }
